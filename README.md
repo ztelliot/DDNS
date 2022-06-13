@@ -257,3 +257,13 @@ domains:
             method: secure
             interface: wan
 ```
+
+## 定时更新？
+
+试试 Crontab！
+
+> 每 5 分钟一次
+>
+> ```crontab
+> */5 * * * * ./main.py
+> ```
