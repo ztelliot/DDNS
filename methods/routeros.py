@@ -1,0 +1,74 @@
+from methods.basetype import MethodBaseType
+from methods.command import Command
+import IPy
+import urllib3
+import requests
+from requests.auth import HTTPBasicAuth
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+class RouterOS(MethodBaseType):
+    @staticmethod
+    def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
+        if not config:
+            return []
+        if type == "AAAA":
+            command = "/ipv6 "
+        else:
+            command = "/ip "
+        command += "address print "
+        if interface:
+            command += "where interface=" + interface
+        out = Command.run({'cmd': command, 'ssh': config})
+        ips = []
+        for line in out.split('\n'):
+            line_part = line.strip().split()
+            if line == '' or line_part[0].isdigit() is False or len(line_part) == 1:
+                continue
+            else:
+                for i in line_part[1:]:
+                    try:
+                        ip = i.split("/")[0]
+                        IPy.IP(ip)
+                        if ip.startswith(start):
+                            ips.append(ip)
+                            break
+                        else:
+                            continue
+                    except:
+                        continue
+        return ips
+
+
+class RouterOSREST(MethodBaseType):
+    @staticmethod
+    def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
+        if not config:
+            return []
+        if 'hostname' not in config or 'username' not in config or 'password' not in config:
+            return []
+        base = f"https://{config['hostname']}:{config['port'] if 'port' in config else 443}/rest"
+        if type == "AAAA":
+            API = base + "/ipv6/address"
+        else:
+            API = base + "/ip/address"
+        AUTH = HTTPBasicAuth(config['username'], config['password'])
+        params = {}
+        if interface:
+            params = {"interface": interface}
+        try:
+            data = requests.get(API, auth=AUTH, params=params, timeout=3, verify=False).json()
+            ips = []
+            for raw in data:
+                try:
+                    ip = raw['address'].split("/")[0]
+                    if ip.startswith(start):
+                        ips.append(ip)
+                    else:
+                        continue
+                except:
+                    continue
+            return ips
+        except:
+            return []
