@@ -92,35 +92,31 @@ class DNSPod:
 
     def update(self, domain: str, sub: str, ip_list: dict):
         sub_info = self.RecordList(domain=domain, sub=sub)
-        for type in ip_list:
-            for line in ip_list[type]:
+        for line in ip_list:
+            for type in ip_list[line]:
                 records = self.RecordFilter(sub_info, type, line)
                 records_list = [i for i in records]
-                logging.debug(f"根据 {type} {line} 筛选出下列记录: {records}")
-                ips = ip_list[type][line]
-                ips_list = [i for i in ips]
-                t = [i for i in ips]
-                for ip in t:
+                logging.debug(f"根据 {line} {type} 筛选出下列记录: {records}")
+                ttl = ip_list[line][type]['ttl']
+                ips = ip_list[line][type]['ip']
+                for ip in [i for i in ips]:
                     if ip in records:
                         logging.warning(f"{ip} 已在记录列表中, 跳过...")
                         del records[ip]
-                        del ips[ip]
-                        ips_list.remove(ip)
+                        ips.remove(ip)
                         records_list.remove(ip)
-                if len(records_list) < len(ips_list):
+                if len(records_list) < len(ips):
                     logging.warning("记录条数少于 IP 数, 新建记录...")
-                    logging.debug(f"原记录为: {records_list} , 现 IP 为 {ips_list}")
-                    t = [i for i in ips][0: len(ips_list) - len(records_list)]
-                    for ip in t:
-                        if self.RecordCreate(domain, ip, sub, type, line, ttl=ips[ip]):
+                    logging.debug(f"原记录为: {records_list} , 现 IP 为 {ips}")
+                    for ip in ips[0: len(ips) - len(records_list)]:
+                        if self.RecordCreate(domain, ip, sub, type, line, ttl=ttl):
                             logging.warning(f"新建 {ip} 成功")
                         else:
                             logging.warning(f"新建 {ip} 失败")
-                        del ips[ip]
-                        ips_list.remove(ip)
-                elif len(records_list) > len(ips_list):
+                        ips.remove(ip)
+                elif len(records_list) > len(ips):
                     logging.warning("记录条数多于 IP 数, 删除多余记录...")
-                    t = [i for i in records][0: len(records_list) - len(ips_list)]
+                    t = [i for i in records][0: len(records_list) - len(ips)]
                     for old_ip in t:
                         if self.RecordRemove(domain, records[old_ip]):
                             logging.warning(f"删除 {old_ip} 成功")
@@ -128,8 +124,8 @@ class DNSPod:
                             logging.warning(f"删除 {old_ip} 失败")
                         del records[old_ip]
                         records_list.remove(old_ip)
-                for ip, old_ip in zip(ips_list, records_list):
-                    if self.RecordModify(domain, records[old_ip], ip, sub, type, line, ttl=ips[ip]):
+                for ip, old_ip in zip(ips, records_list):
+                    if self.RecordModify(domain, records[old_ip], ip, sub, type, line, ttl=ttl):
                         logging.warning(f"更新记录成功, {old_ip} => {ip}")
                     else:
                         logging.warning(f"更新 {old_ip} 失败, 尝试使用 DDNS 方式更新...")

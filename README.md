@@ -3,7 +3,9 @@
 由于 hub 里的各种 DDNS 脚本无法满足本人的扭曲需求，故编写此脚本：
 
 - 奇怪的 IP 获取方式
+- Boom in one
 - DNSPod 分线路解析
+- 超大多子域名
 
 ## 如何使用
 
@@ -18,9 +20,15 @@
 本脚本配置文件采用 `yaml` 格式：
 
 ```yaml
-providers: {}
-methods: {}
-domains: {}
+providers: []
+methods: []
+domains: []
+```
+
+通过 `--config` 参数可以指定配置文件
+
+```shell
+python3 main.py --config ddns.yaml
 ```
 
 ### providers
@@ -125,6 +133,8 @@ methods:
 - Requests
 
 > 最简单的 requests
+> 
+> 需要使用单栈接口以区分 IPv4/IPv6
 
 ```yaml
 methods:
@@ -135,9 +145,9 @@ methods:
 
 - RouterOS
 
-> 间接调用 command 方式
+> 间接调用 command 方式，通过 SSH 连接漏油
 > 
-> 通过 /ip address print 获取 IP
+> 使用 /ip address print 获取 IP
 
 ```yaml
 methods:
@@ -145,9 +155,9 @@ methods:
     method: routeros
     config:
       hostname: 192.168.88.1  # 必填
-      port: 22  # 可选，默认为 22
-      username: admin  # 必填
-      password: 114514  # 必填
+      port: 22  # 可选
+      username: admin  # 可选
+      password: 114514  # 可选
 ```
 
 - RouterOS-REST
@@ -175,12 +185,17 @@ methods:
 domains:
   - domain: example.com  # 必填，域名
     provider: dnspod  # 必填，服务商名称
+    ttl: 60  # 可选，该域名的全局 TTL，默认 600
+    clean: False  # 可选，未获取到 IP 时是否清除记录，默认否
     sub:
       - name: test1.test2  # 必填，子域名
+        ttl: 60  # 可选，该子域名的 TTL，覆盖域名全局 TTL
+        clean: False  # 可选，覆盖域名全局设置
         records:  # 可选，具体记录及获取方式
           - type: A  # 可选，记录类型，默认为 A
-            line: 电信  # 可选，仅适用于 dnspod，默认为默认
-            ttl: 60  # 可选，仅适用于 dnspod，默认为 600 (gandi 为 300)
+            line: 电信  # 可选，仅适用于 dnspod，默认为默认，当且仅当值为默认时 gandi 会进行处理
+            ttl: 60  # 可选，具体线路 TTL，覆盖子域名全局 TTL
+            clean: True  # 可选，覆盖子域名全局设置
             method: core-router  # 可选，方法名称，默认为 requests
             interface: pppoe  # 可选，获取 IP 的网卡，部分方式不支持：command requests
             start: "2409"  # 可选，用以筛选出特定开头的 IP，适合当一张网卡上有多个 IP 时使用
@@ -195,6 +210,10 @@ providers:
     config:
       ua: Another DDNS Service/0.0.1 (ztell@foxmail.com)
       id: 114514
+      token: 1919810
+  - name: gd
+    provider: gandi
+    config:
       token: 1919810
 methods:
   - name: core
@@ -212,50 +231,56 @@ methods:
 domains:
   - domain: example.net
     provider: dp
+    ttl: 60
     sub:
       - name: core.router
         records:
           - type: A
-            line: 电信
-            ttl: 60
+            line: 默认
             method: core
             interface: pppoe-ct
           - type: A
             line: 联通
-            ttl: 60
+            clean: True
             method: core
             interface: pppoe-cu
       - name: ct.core.router
         records:
           - type: A
             line: 默认
-            ttl: 60
             method: core
             interface: pppoe-ct
       - name: cu.core.router
         records:
           - type: A
             line: 默认
-            ttl: 60
             method: core
             interface: pppoe-cu
       - name: dev
+        ttl: 120
         records:
           - type: AAAA
             line: 默认
-            ttl: 60
             method: curl
             start: "2408"
   - domain: example.com
-    provider: dp
+    provider: gd
     sub:
       - name: naaaaaaas
         records:
           - type: A
-            line: 默认
-            ttl: 60
+            ttl: 300
             method: secure
             interface: wan
+          - type: AAAA
+            ttl: 600
+            method: curl
+```
+
+## Docker
+
+```shell
+docker run -d --name ddns -v /path/to/config.yaml:/config.yaml --network host ghcr.io/ztelliot/ddns:latest
 ```
 
 ## 定时更新？
@@ -264,6 +289,17 @@ domains:
 
 > 每 5 分钟一次
 >
-> ```crontab
-> */5 * * * * ./main.py
 > ```
+> */5 * * * * /path/main.py --config /path/config.yaml
+> ```
+
+
+## Kubernetes
+
+> 如果你碰巧有一个 Kubernetes 集群，那 CronJob 无疑是最合适的方式
+
+参照 `cronjob.yaml` 进行修改，然后
+
+```shell
+kubectl apply -f cronjob.yaml
+```

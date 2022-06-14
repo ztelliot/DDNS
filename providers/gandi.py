@@ -33,23 +33,23 @@ class Gandi:
         status, sub_info = self.__req__(domain, sub)
         if not status or not sub_info:
             sub_info = []
-        for type in ip_list:
-            if '默认' in ip_list[type]:
+        if '默认' in ip_list:
+            for type in ip_list['默认']:
                 records = self.filter(sub_info, type)
                 logging.debug(f"根据 {type} 筛选出下列记录: {records}")
-                ips = [i for i in ip_list[type]['默认']]
+                ttl = ip_list['默认'][type]['ttl']
+                ips = ip_list['默认'][type]['ip']
                 if records:
                     if sorted(records) == sorted(ips):
                         logging.warning(f'{sub}.{domain} {type} 无需更新')
+                        continue
+                    elif ips:
+                        status, result = self.__req__(domain, sub, type, {"rrset_ttl": ttl, "rrset_values": ips}, 'PUT')
                     else:
-                        status, result = self.__req__(domain, sub, type, {"rrset_ttl": 300, "rrset_values": ips}, 'PUT')
-                        if status:
-                            logging.warning(f"更新 {sub}.{domain} {type} 成功")
-                        else:
-                            logging.warning(f"更新 {sub}.{domain} {type} 失败，{result}")
+                        status, result = self.__req__(domain, sub, type, method='DELETE')
                 else:
-                    status, result = self.__req__(domain, sub, type, {"rrset_ttl": 300, "rrset_values": ips}, 'POST')
-                    if status:
-                        logging.warning(f"新建 {sub}.{domain} {type} 成功")
-                    else:
-                        logging.warning(f"新建 {sub}.{domain} {type} 失败，{result}")
+                    status, result = self.__req__(domain, sub, type, {"rrset_ttl": ttl, "rrset_values": ips}, 'POST')
+                if status:
+                    logging.warning(f"处理 {sub}.{domain} {type} 成功")
+                else:
+                    logging.warning(f"处理 {sub}.{domain} {type} 失败，{result}")
