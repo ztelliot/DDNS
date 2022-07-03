@@ -73,7 +73,7 @@ providers:
 ````yaml
 methods:
   - name:  # 必填，method 名称，可以乱填，不能重复
-    method:  # 可选，类型，不填则引用 name，当前支持 command curl interface requests routeros routeros-rest 六种
+    method:  # 可选，类型，不填则引用 name，当前支持 command curl interface requests routeros routeros-ssh routeros-rest 七种
     config: { }  # 可选
 ````
 
@@ -139,6 +139,21 @@ methods:
 
 - RouterOS
 
+> 通过 RouterOS 传统 API 获取 IP
+
+```yaml
+methods:
+  - name: core-router
+    method: routeros
+    config:
+      hostname: 192.168.88.1  # 必填
+      port: 8728  # 可选，默认为 8728
+      username: admin  # 必填
+      password: 1919810  # 必填
+```
+
+- RouterOS-SSH
+
 > 间接调用 command 方式，通过 SSH 连接漏油
 >
 > 使用 /ip address print 获取 IP
@@ -157,8 +172,6 @@ methods:
 - RouterOS-REST
 
 > RouterOS v7.1beta4 引入了 RESTful API，故本方式仅适用于 v7.1beta4+
->
-> 是本人放弃适配传统 API 的直接原因（
 
 ```yaml
 methods:
@@ -218,7 +231,7 @@ methods:
       username: user
       password: 1919810
   - name: secure
-    method: routeros
+    method: routeros-ssh
     config:
       hostname: 192.168.88.2
       username: root

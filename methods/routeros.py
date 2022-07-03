@@ -4,11 +4,13 @@ import IPy
 import urllib3
 import requests
 from requests.auth import HTTPBasicAuth
+from librouteros import connect
+from librouteros.query import Key
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-class RouterOS(MethodBaseType):
+class RouterOSSSH(MethodBaseType):
     @staticmethod
     def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
         if not config:
@@ -34,10 +36,34 @@ class RouterOS(MethodBaseType):
                         if ip.startswith(start):
                             ips.append(ip)
                             break
-                        else:
-                            continue
                     except:
                         continue
+        return ips
+
+
+class RouterOSAPI(MethodBaseType):
+    @staticmethod
+    def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
+        if not config:
+            return []
+        if 'hostname' not in config or 'username' not in config or 'password' not in config:
+            return []
+        ips = []
+        if type == "AAAA":
+            path = "/ipv6/address"
+        else:
+            path = "/ip/address"
+        api = connect(username=config['username'], password=config['password'], host=config['hostname'],
+                      port=config['port'] if 'port' in config else 8728)
+        ki = Key('interface')
+        ka = Key('address')
+        query = api.path(path).select(ki, ka)
+        if interface:
+            query = query.where(ki == interface)
+        for i in query:
+            ip = i['address'].split('/')[0]
+            if ip.startswith(start):
+                ips.append(ip)
         return ips
 
 
@@ -61,14 +87,9 @@ class RouterOSREST(MethodBaseType):
             data = requests.get(API, auth=AUTH, params=params, timeout=3, verify=False).json()
             ips = []
             for raw in data:
-                try:
-                    ip = raw['address'].split("/")[0]
-                    if ip.startswith(start):
-                        ips.append(ip)
-                    else:
-                        continue
-                except:
-                    continue
+                ip = raw['address'].split("/")[0]
+                if ip.startswith(start):
+                    ips.append(ip)
             return ips
         except:
             return []
