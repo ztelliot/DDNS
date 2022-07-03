@@ -20,9 +20,9 @@
 本脚本配置文件采用 `yaml` 格式：
 
 ```yaml
-providers: []
-methods: []
-domains: []
+providers: [ ]
+methods: [ ]
+domains: [ ]
 ```
 
 通过 `--config` 参数可以指定配置文件
@@ -39,7 +39,7 @@ python3 main.py --config ddns.yaml
 providers:
   - name:  # 必填，provider 名称，可以乱填，不能重复
     provider:  # 可选，服务商类型，不填则引用 name，当前支持 dnspod 和 gandi 两种
-    config: {}  # 必填，服务商配置
+    config: { }  # 必填，服务商配置
 ```
 
 - DNSPod
@@ -74,17 +74,17 @@ providers:
 methods:
   - name:  # 必填，method 名称，可以乱填，不能重复
     method:  # 可选，类型，不填则引用 name，当前支持 command curl interface requests routeros routeros-rest 六种
-    config: {}  # 可选
+    config: { }  # 可选
 ````
 
 - Command
 
 > 在本地或远程执行命令
-> 
+>
 > ssh 内的参数将直接传递给 paramiko SSHClient 类的 connect 方法，更多参数请见官方文档
-> 
+>
 > *默认 10s 超时，禁用 SSH 代理，允许在 ~/.ssh 下搜索私钥*
-> 
+>
 > 不会对执行结果进行任何处理，故需要结果直接为 IP
 
 ```yaml
@@ -92,7 +92,7 @@ methods:
   - name: cloud
     method: cmd
     config:
-      ssh:  # 可选，为空则本地执行
+      ssh: # 可选，为空则本地执行
         hostname:  # 目标地址，不可为空
         port:  # 目标端口，默认 22
         username:  # 用户名，默认为本机用户名
@@ -103,7 +103,7 @@ methods:
 - Curl
 
 > 间接调用 command 方式
-> 
+>
 > 对于 JSON 格式的返回，会尝试解析其中的 `ip` 项，否则认为返回值为 IP
 
 ```yaml
@@ -111,42 +111,36 @@ methods:
   - name: wget
     method: curl
     config:
-      ssh: {}  # 可选
-      url: []  # 可选，覆盖内置接口，支持单个或多个链接
+      ssh: { }  # 可选
+      url: [ ]  # 可选，覆盖内置接口，支持单个或多个链接
 ```
 
 - Interface
 
-> 间接调用 command 方式
-> 
-> 通过 ip addr 获取 IP
-> 
-> 不支持 Windows
+> 通过 psutil 获取
+>
+> 无可配置项
 
 ```yaml
 methods:
   - name: interface
-    config:
-      ssh: {}  # 可选
 ```
 
 - Requests
 
 > 最简单的 requests
-> 
-> 需要使用单栈接口以区分 IPv4/IPv6
 
 ```yaml
 methods:
   - name: requests
     config:
-      url: []  # 可选，覆盖内置接口，支持单个或多个链接
+      url: [ ]  # 可选，覆盖内置接口，支持单个或多个链接
 ```
 
 - RouterOS
 
 > 间接调用 command 方式，通过 SSH 连接漏油
-> 
+>
 > 使用 /ip address print 获取 IP
 
 ```yaml
@@ -163,7 +157,7 @@ methods:
 - RouterOS-REST
 
 > RouterOS v7.1beta4 引入了 RESTful API，故本方式仅适用于 v7.1beta4+
-> 
+>
 > 是本人放弃适配传统 API 的直接原因（
 
 ```yaml
@@ -191,7 +185,7 @@ domains:
       - name: test1.test2  # 必填，子域名
         ttl: 60  # 可选，该子域名的 TTL，覆盖域名全局 TTL
         clean: False  # 可选，覆盖域名全局设置
-        records:  # 可选，具体记录及获取方式
+        records: # 可选，具体记录及获取方式
           - type: A  # 可选，记录类型，默认为 A
             line: 电信  # 可选，仅适用于 dnspod，默认为默认，当且仅当值为默认时 gandi 会进行处理
             ttl: 60  # 可选，具体线路 TTL，覆盖子域名全局 TTL
@@ -292,7 +286,6 @@ docker run -d --name ddns -v /path/to/config.yaml:/config.yaml --network host gh
 > ```
 > */5 * * * * /path/main.py --config /path/config.yaml
 > ```
-
 
 ## Kubernetes
 
