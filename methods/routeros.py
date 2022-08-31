@@ -12,13 +12,10 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class RouterOSSSH(MethodBaseType):
     @staticmethod
-    def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
+    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
         if not config:
             return []
-        if type == "AAAA":
-            command = "/ipv6 "
-        else:
-            command = "/ip "
+        command = "/ipv6 " if version == 6 else "/ip "
         command += "address print "
         if interface:
             command += "where interface=" + interface
@@ -32,8 +29,7 @@ class RouterOSSSH(MethodBaseType):
                 for i in line_part[1:]:
                     try:
                         ip = i.split("/")[0]
-                        IPy.IP(ip)
-                        if ip.startswith(start):
+                        if ip and IPy.IP(ip).version() == version:
                             ips.append(ip)
                             break
                     except:
@@ -43,16 +39,13 @@ class RouterOSSSH(MethodBaseType):
 
 class RouterOSAPI(MethodBaseType):
     @staticmethod
-    def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
+    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
         if not config:
             return []
         if 'hostname' not in config or 'username' not in config or 'password' not in config:
             return []
         ips = []
-        if type == "AAAA":
-            path = "/ipv6/address"
-        else:
-            path = "/ip/address"
+        path = "/ipv6/address" if version == 6 else "/ip/address"
         api = connect(username=config['username'], password=config['password'], host=config['hostname'],
                       port=config['port'] if 'port' in config else 8728)
         ki = Key('interface')
@@ -62,23 +55,20 @@ class RouterOSAPI(MethodBaseType):
             query = query.where(ki == interface)
         for i in query:
             ip = i['address'].split('/')[0]
-            if ip.startswith(start):
+            if ip and IPy.IP(ip).version() == version:
                 ips.append(ip)
         return ips
 
 
 class RouterOSREST(MethodBaseType):
     @staticmethod
-    def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
+    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
         if not config:
             return []
         if 'hostname' not in config or 'username' not in config or 'password' not in config:
             return []
         base = f"https://{config['hostname']}:{config['port'] if 'port' in config else 443}/rest"
-        if type == "AAAA":
-            API = base + "/ipv6/address"
-        else:
-            API = base + "/ip/address"
+        API = base + ("/ipv6/address" if version == 6 else "/ip/address")
         AUTH = HTTPBasicAuth(config['username'], config['password'])
         params = {}
         if interface:
@@ -88,7 +78,7 @@ class RouterOSREST(MethodBaseType):
             ips = []
             for raw in data:
                 ip = raw['address'].split("/")[0]
-                if ip.startswith(start):
+                if ip and IPy.IP(ip).version() == version:
                     ips.append(ip)
             return ips
         except:

@@ -2,6 +2,7 @@ from methods.basetype import MethodBaseType
 import delegator
 import paramiko
 import logging
+import IPy
 
 
 class Command(MethodBaseType):
@@ -32,15 +33,19 @@ class Command(MethodBaseType):
                 out = stdout.read().decode().strip().replace('\r\n', '\n')
                 ssh.close()
             except:
+                logging.warning("SSH 连接时出错")
                 return ''
         else:
             out = delegator.run(command).out.strip()
         return out
 
     @staticmethod
-    def getip(type: str = "", interface: str = "", start: str = "", config: dict = None) -> list:
+    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
         out = Command.run(config)
-        if out and out.startswith(start):
-            return [out]
-        else:
+        try:
+            if out and IPy.IP(out).version() == version:
+                return [out]
+            else:
+                raise
+        except:
             return []

@@ -38,7 +38,7 @@ python3 main.py --config ddns.yaml
 ```yaml
 providers:
   - name:  # 必填，provider 名称，可以乱填，不能重复
-    provider:  # 可选，服务商类型，不填则引用 name，当前支持 dnspod 和 gandi 两种
+    provider:  # 可选，DNS 服务商，支持的服务商见下方列表，默认引用 name
     config: { }  # 必填，服务商配置
 ```
 
@@ -73,7 +73,7 @@ providers:
 ````yaml
 methods:
   - name:  # 必填，method 名称，可以乱填，不能重复
-    method:  # 可选，类型，不填则引用 name，当前支持 command curl interface requests routeros routeros-ssh routeros-rest 七种
+    method:  # 可选，获取 IP 的方法，默认引用 name，支持的方法见下方列表
     config: { }  # 可选
 ````
 
@@ -191,7 +191,7 @@ methods:
 ```yaml
 domains:
   - domain: example.com  # 必填，域名
-    provider: dnspod  # 必填，服务商名称
+    provider: dnspod_demo  # 必填，服务商名称
     ttl: 60  # 可选，该域名的全局 TTL，默认 600
     clean: False  # 可选，未获取到 IP 时是否清除记录，默认否
     sub:
@@ -204,8 +204,8 @@ domains:
             ttl: 60  # 可选，具体线路 TTL，覆盖子域名全局 TTL
             clean: True  # 可选，覆盖子域名全局设置
             method: core-router  # 可选，方法名称，默认为 requests
-            interface: pppoe  # 可选，获取 IP 的网卡，部分方式不支持：command requests
-            start: "2409"  # 可选，用以筛选出特定开头的 IP，适合当一张网卡上有多个 IP 时使用
+            interface: pppoe  # 可选，获取 IP 的网卡，对 command 方法无效
+            regex: "^2409|^2408"  # 可选，用以筛选 IP 的正则表达式，适合当一张网卡上有多个 IP 时使用
 ```
 
 ### 样例
@@ -215,7 +215,7 @@ providers:
   - name: dp
     provider: dnspod
     config:
-      ua: Another DDNS Service/0.0.1 (ztell@foxmail.com)
+      ua: Another DDNS Service/1.0 (ztell@foxmail.com)
       id: 114514
       token: 1919810
   - name: gd
@@ -269,7 +269,7 @@ domains:
           - type: AAAA
             line: 默认
             method: curl
-            start: "2408"
+            regex: "^2408"
   - domain: example.com
     provider: gd
     sub:

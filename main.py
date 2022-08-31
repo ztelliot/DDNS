@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import yaml
+import re
 import logging
 import argparse
 from methods import methods
@@ -30,6 +31,7 @@ def main(config: str = "config.yaml"):
             ip_list = {}
             for record in j['records']:
                 type = record["type"] if "type" in record else "A"
+                version = 6 if type == 'AAAA' else 4
                 line = record["line"] if "line" in record else "默认"
                 ttl = record["ttl"] if "ttl" in record else sub_ttl
                 clean = record["clean"] if "clean" in record else sub_clean
@@ -40,16 +42,17 @@ def main(config: str = "config.yaml"):
                         method_config = method_dict[method]['config']
                     method = method_dict[method]['method'] if 'method' in method_dict[method] else method
                 interface = record["interface"] if "interface" in record else ''
-                start = record["start"] if "start" in record else ''
-                ips = methods[method].getip(type, interface, start, config=method_config)
-                logging.warning(f"{method} 方式获取到以下 IP : {ips}")
-                if not ips and not clean:
+                regex = record["regex"] if "regex" in record else ''
+                ips = methods[method].getip(version, interface, config=method_config)
+                ips_regex = [ip for ip in ips if re.match(regex, ip)]
+                logging.warning(f"{method} 方式获取到以下 IP : {ips_regex}")
+                if not ips_regex and not clean:
                     continue
                 if line not in ip_list:
                     ip_list[line] = {}
                 if type not in ip_list[line]:
                     ip_list[line][type] = {'ttl': ttl, 'ip': []}
-                ip_list[line][type]['ip'].extend(ips)
+                ip_list[line][type]['ip'].extend(ips_regex)
             logging.warning(f"共获取到以下 IP : {ip_list}")
             pv.update(domain, sub, ip_list)
 

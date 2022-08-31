@@ -6,8 +6,8 @@ import IPy
 
 class Curl(MethodBaseType):
     @staticmethod
-    def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
-        command = f"curl -{'6' if type == 'AAAA' else '4'} -m 3 " + (f"--interface {interface} " if interface else '')
+    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
+        command = f"curl -{version} -m 3 " + (f"--interface {interface} " if interface else '')
         if config and 'url' in config:
             urls = config['url'] if isinstance(config['url'], list) else [config['url']]
         else:
@@ -19,8 +19,7 @@ class Curl(MethodBaseType):
                     ip = json.loads(out)['ip']
                 else:
                     ip = out
-                if ip.startswith(start):
-                    IPy.IP(ip)
+                if ip and IPy.IP(ip).version() == version:
                     return [ip]
             except:
                 continue

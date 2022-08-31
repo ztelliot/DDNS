@@ -5,11 +5,8 @@ import IPy
 
 class Interface(MethodBaseType):
     @staticmethod
-    def getip(type: str = "A", interface: str = "", start: str = "", config: dict = None) -> list:
-        if type == 'A':
-            name = 'AF_INET'
-        else:
-            name = 'AF_INET6'
+    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
+        name = 'AF_INET' if version == 4 else 'AF_INET6'
         ips = []
         addr = psutil.net_if_addrs()
         for adapter in addr:
@@ -18,8 +15,7 @@ class Interface(MethodBaseType):
                     if i.family.name == name:
                         address = i.address
                         try:
-                            IPy.IP(address)
-                            if address.startswith(start):
+                            if address and IPy.IP(address).version() == version:
                                 ips.append(address)
                         except:
                             continue
