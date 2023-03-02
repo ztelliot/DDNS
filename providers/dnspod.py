@@ -98,7 +98,7 @@ class DNSPod:
                 records_list = [i for i in records]
                 logging.debug(f"根据 {line} {type} 筛选出下列记录: {records}")
                 ttl = ip_list[line][type]['ttl']
-                ips = ip_list[line][type]['ip']
+                ips = [i for i in ip_list[line][type]['ip']]
                 for ip in [i for i in ips]:
                     if ip in records:
                         logging.warning(f"{ip} 已在记录列表中, 跳过...")
