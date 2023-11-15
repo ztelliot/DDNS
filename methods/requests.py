@@ -1,5 +1,6 @@
 from methods.basetype import MethodBaseType
 from methods.interface import Interface
+from methods.getip import API
 import requests
 import socket
 import requests.packages.urllib3.util.connection as urllib3_cn
@@ -23,9 +24,11 @@ class Requests(MethodBaseType):
             inips = Interface.getip(version, interface)
             if inips:
                 rcc = urllib3_cn.create_connection
-                def set_src(address, timeout, source_address = None, socket_options = None):
+
+                def set_src(address, timeout, source_address=None, socket_options=None):
                     source_address = (inips[0], 0)
                     return rcc(address, timeout, source_address, socket_options)
+
                 urllib3_cn.create_connection = set_src
             else:
                 urllib3_cn.allowed_gai_family = ragf
@@ -33,15 +36,30 @@ class Requests(MethodBaseType):
         if config and 'url' in config:
             urls = config['url'] if isinstance(config['url'], list) else [config['url']]
         else:
-            urls = ['https://api.ipify.org?format=json', 'https://api.myip.la', 'https://api.ip.sb/ip']
+            urls = API
         res = []
         for url in urls:
+            addr = url
+            if isinstance(url, dict):
+                addr = url["url"]
             try:
-                ret = requests.get(url, timeout=3)
-                try:
-                    ip = ret.json()['ip']
-                except:
-                    ip = ret.text
+                ret = requests.get(addr, timeout=3)
+                ip = ''
+                if "key" in url:
+                    if url["key"] == "cloudflare":
+                        for i in ret.text.split('\n'):
+                            if i.startswith("ip="):
+                                ip = i.lstrip("ip=")
+                                break
+                    else:
+                        ip = ret.json()
+                        for i in url["key"].split('.'):
+                            ip = ip[i]
+                else:
+                    try:
+                        ip = ret.json()['ip']
+                    except:
+                        ip = ret.text
                 if ip and IPy.IP(ip).version() == version:
                     res = [ip]
                     break
