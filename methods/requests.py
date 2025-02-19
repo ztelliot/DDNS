@@ -1,10 +1,11 @@
 from methods.basetype import MethodBaseType
 from methods.interface import Interface
-from methods.getip import API
+from methods.api import API
 import requests
 import socket
 import requests.packages.urllib3.util.connection as urllib3_cn
 import IPy
+import jsonpath
 
 
 class Requests(MethodBaseType):
@@ -17,7 +18,7 @@ class Requests(MethodBaseType):
         return socket.AF_INET6
 
     @staticmethod
-    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
+    def getip(version: int = 4, interface: str = "", **kwargs) -> list:
         ragf = urllib3_cn.allowed_gai_family
         urllib3_cn.allowed_gai_family = Requests.family_v6 if version == 6 else Requests.family_v4
         if interface:
@@ -33,33 +34,21 @@ class Requests(MethodBaseType):
             else:
                 urllib3_cn.allowed_gai_family = ragf
                 return []
-        if config and 'url' in config:
-            urls = config['url'] if isinstance(config['url'], list) else [config['url']]
+        if kwargs.get("url"):
+            apis = kwargs['url'] if isinstance(kwargs['url'], list) else [kwargs['url']]
         else:
-            urls = API
+            apis = API
         res = []
-        for url in urls:
-            addr = url
-            if isinstance(url, dict):
-                addr = url["url"]
+        for api in apis:
+            addr = api["url"] if isinstance(api, dict) else api
             try:
                 ret = requests.get(addr, timeout=3)
                 ip = ''
-                if "key" in url:
-                    if url["key"] == "cloudflare":
-                        for i in ret.text.split('\n'):
-                            if i.startswith("ip="):
-                                ip = i.lstrip("ip=")
-                                break
-                    else:
-                        ip = ret.json()
-                        for i in url["key"].split('.'):
-                            ip = ip[i]
+                if isinstance(api, dict) and "key" in api:
+                    ip = jsonpath.findall(api["key"], ret.json())
+                    ip = ip[0] if ip else ''
                 else:
-                    try:
-                        ip = ret.json()['ip']
-                    except:
-                        ip = ret.text
+                    ip = ret.text
                 if ip and IPy.IP(ip).version() == version:
                     res = [ip]
                     break

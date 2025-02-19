@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import IPy
 import yaml
 import re
 import logging
@@ -17,35 +18,53 @@ def main(config: str = "config.yaml"):
     for i in config['domains']:
         domain = i['domain']
         provider = i['provider']
-        domain_ttl = i['ttl'] if 'ttl' in i else 600
-        domain_clean = i['clean'] if 'clean' in i else False
-        real_provider = provider_dict[provider]['provider'] if 'provider' in provider_dict[provider] else provider
+        domain_ttl = i.get("ttl", 600)
+        domain_clean = i.get("clean", False)
+        real_provider = provider_dict[provider].get("provider", provider)
         pv = providers[real_provider](provider_dict[provider]['config'])
         for j in i['sub']:
             sub = j['name']
-            sub_ttl = j['ttl'] if 'ttl' in j else domain_ttl
-            sub_clean = j['clean'] if 'clean' in j else domain_clean
+            sub_ttl = j.get('ttl', domain_ttl)
+            sub_clean = j.get('clean', domain_clean)
             if not j['records']:
                 j['records'] = [{}]
             logging.warning(f"开始处理 {sub}.{domain}")
             ip_list = {}
             for record in j['records']:
-                type = record["type"] if "type" in record else "A"
+                type = record.get("type", "A")
                 version = 6 if type == 'AAAA' else 4
-                line = record["line"] if "line" in record else "默认"
-                ttl = record["ttl"] if "ttl" in record else sub_ttl
-                clean = record["clean"] if "clean" in record else sub_clean
-                method = record["method"] if "method" in record else "requests"
-                method_config = None
-                if method in method_dict:
-                    if 'config' in method_dict[method]:
-                        method_config = method_dict[method]['config']
-                    method = method_dict[method]['method'] if 'method' in method_dict[method] else method
-                interface = record["interface"] if "interface" in record else ''
-                regex = record["regex"] if "regex" in record else ''
-                ips = methods[method].getip(version, interface, config=method_config)
-                ips_regex = [ip for ip in ips if re.match(regex, ip)]
-                logging.warning(f"{method} 方式获取到以下 IP : {ips_regex}")
+                line = record.get("line", "默认")
+                ttl = record.get("ttl", sub_ttl)
+                clean = record.get("clean", sub_clean)
+                if not record.get("value"):
+                    method = record.get("method", "requests")
+                    method_config = None
+                    if method in method_dict:
+                        if 'config' in method_dict[method]:
+                            method_config = method_dict[method]['config']
+                        method = method_dict[method].get('method', method)
+                    interface = record.get("interface", '')
+                    regex = record.get("regex", '')
+                    ips = methods[method].getip(version, interface, config=method_config)
+                    ips_regex = [ip for ip in ips if re.match(regex, ip)]
+                    logging.warning(f"{method} 方式获取到以下 IP : {ips_regex}")
+                else:
+                    ips_regex = [record["value"]]
+                offset = record.get("offset", 0)
+                if offset:
+                    if isinstance(offset, str):
+                        try:
+                            offset = IPy.IP(offset).int()
+                        except:
+                            pass
+                    ips_offset = []
+                    for ip in ips_regex:
+                        try:
+                            _ip = IPy.IP(ip)
+                            ips_offset.append(IPy.intToIp(_ip.int() + offset, _ip.version()))
+                        except:
+                            ips_offset.append(ip)
+                    ips_regex = ips_offset
                 if not ips_regex and not clean:
                     continue
                 if line not in ip_list:

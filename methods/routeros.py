@@ -12,14 +12,14 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class RouterOSSSH(MethodBaseType):
     @staticmethod
-    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
-        if not config:
+    def getip(version: int = 4, interface: str = "", **kwargs) -> list:
+        if not kwargs:
             return []
         command = "/ipv6 " if version == 6 else "/ip "
         command += "address print "
         if interface:
             command += "where interface=" + interface
-        out = Command.run({'cmd': command, 'ssh': config})
+        out = Command.run(command=command, ssh=kwargs)
         ips = []
         for line in out.split('\n'):
             line_part = line.strip().split()
@@ -39,15 +39,13 @@ class RouterOSSSH(MethodBaseType):
 
 class RouterOSAPI(MethodBaseType):
     @staticmethod
-    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
-        if not config:
-            return []
-        if 'hostname' not in config or 'username' not in config or 'password' not in config:
+    def getip(version: int = 4, interface: str = "", **kwargs) -> list:
+        if not kwargs or 'hostname' not in kwargs or 'username' not in kwargs or 'password' not in kwargs:
             return []
         ips = []
         path = "/ipv6/address" if version == 6 else "/ip/address"
-        api = connect(username=config['username'], password=config['password'], host=config['hostname'],
-                      port=config['port'] if 'port' in config else 8728)
+        api = connect(username=kwargs['username'], password=kwargs['password'], host=kwargs['hostname'],
+                      port=kwargs.get('port', 8728))
         ki = Key('interface')
         ka = Key('address')
         query = api.path(path).select(ki, ka)
@@ -62,14 +60,12 @@ class RouterOSAPI(MethodBaseType):
 
 class RouterOSREST(MethodBaseType):
     @staticmethod
-    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
-        if not config:
+    def getip(version: int = 4, interface: str = "", **kwargs) -> list:
+        if not kwargs or 'hostname' not in kwargs or 'username' not in kwargs or 'password' not in kwargs:
             return []
-        if 'hostname' not in config or 'username' not in config or 'password' not in config:
-            return []
-        base = f"https://{config['hostname']}:{config['port'] if 'port' in config else 443}/rest"
+        base = f"https://{kwargs['hostname']}:{kwargs.get("port", 443)}/rest"
         API = base + ("/ipv6/address" if version == 6 else "/ip/address")
-        AUTH = HTTPBasicAuth(config['username'], config['password'])
+        AUTH = HTTPBasicAuth(kwargs['username'], kwargs['password'])
         params = {}
         if interface:
             params = {"interface": interface}

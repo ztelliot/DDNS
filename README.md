@@ -206,6 +206,8 @@ domains:
             method: core-router  # 可选，方法名称，默认为 requests
             interface: pppoe  # 可选，获取 IP 的网卡，对 command 方法无效
             regex: "^2409|^2408"  # 可选，用以筛选 IP 的正则表达式，适合当一张网卡上有多个 IP 时使用
+            offset: 114514  # 可选，用于计算实际设置的 IP，在 netmap 场景下有奇效，可以为一个 IP 地址或整数
+            value: "223.5.5.5"  # 可选，用于直接指定要设置的 IP，优先级最高
 ```
 
 ### 样例
@@ -270,6 +272,7 @@ domains:
             line: 默认
             method: curl
             regex: "^2408"
+            offset: 1919810
   - domain: example.com
     provider: gd
     sub:

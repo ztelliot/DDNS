@@ -5,3 +5,4 @@ delegator.py
 paramiko
 psutil
 librouteros
+python-jsonpath

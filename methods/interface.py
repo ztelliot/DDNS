@@ -5,7 +5,7 @@ import IPy
 
 class Interface(MethodBaseType):
     @staticmethod
-    def getip(version: int = 4, interface: str = "", config: dict = None) -> list:
+    def getip(version: int = 4, interface: str = "", **kwargs) -> list:
         name = 'AF_INET' if version == 4 else 'AF_INET6'
         ips = []
         addr = psutil.net_if_addrs()
