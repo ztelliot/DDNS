@@ -1,60 +1,42 @@
-from methods.basetype import MethodBaseType
+from methods.base import Method
 from methods.interface import Interface
-from methods.api import API
+from methods.api import get_api
 import requests
 import socket
-import requests.packages.urllib3.util.connection as urllib3_cn
-import IPy
-import jsonpath
+import urllib3.util.connection as urllib3
+import logging
 
 
-class Requests(MethodBaseType):
+class Requests(Method):
     @staticmethod
-    def family_v4():
-        return socket.AF_INET
+    def run(version: int = None, interface: str = None, url: list[str | dict[str, str]] | str = None, **kwargs) -> dict[str, dict[str, str]]:
+        default_gai = urllib3.allowed_gai_family
+        if version:
+            urllib3.allowed_gai_family = (lambda : socket.AF_INET) if version == 4 else (lambda : socket.AF_INET6)
 
-    @staticmethod
-    def family_v6():
-        return socket.AF_INET6
-
-    @staticmethod
-    def getip(version: int = 4, interface: str = "", **kwargs) -> list:
-        ragf = urllib3_cn.allowed_gai_family
-        urllib3_cn.allowed_gai_family = Requests.family_v6 if version == 6 else Requests.family_v4
+        default_connection = urllib3.create_connection
         if interface:
-            inips = Interface.getip(version, interface)
-            if inips:
-                rcc = urllib3_cn.create_connection
-
-                def set_src(address, timeout, source_address=None, socket_options=None):
-                    source_address = (inips[0], 0)
-                    return rcc(address, timeout, source_address, socket_options)
-
-                urllib3_cn.create_connection = set_src
+            _interface_ips = Interface.run(version, interface)
+            if _interface_ips:
+                _source_address = (list(_interface_ips.keys())[0], 0)
+                urllib3.create_connection = lambda address, timeout, source_address=None, socket_options=None: default_connection(address, timeout, _source_address, socket_options)
             else:
-                urllib3_cn.allowed_gai_family = ragf
-                return []
-        if kwargs.get("url"):
-            apis = kwargs['url'] if isinstance(kwargs['url'], list) else [kwargs['url']]
-        else:
-            apis = API
-        res = []
-        for api in apis:
-            addr = api["url"] if isinstance(api, dict) else api
+                urllib3.allowed_gai_family = default_gai
+                return {}
+
+        res = {}
+        for api in get_api(url):
             try:
-                ret = requests.get(addr, timeout=3)
-                ip = ''
-                if isinstance(api, dict) and "key" in api:
-                    ip = jsonpath.findall(api["key"], ret.json())
-                    ip = ip[0] if ip else ''
-                else:
-                    ip = ret.text
-                if ip and IPy.IP(ip).version() == version:
-                    res = [ip]
+                ret = requests.get(api.url, timeout=5)
+                ip = api.parse(ret.text)
+                if ip:
+                    res[ip] = {"interface": interface} if interface else {}
                     break
-            except:
+            except Exception as e:
+                logging.error(f"Failed to get ip from {api.url}: {e}")
                 continue
-        urllib3_cn.allowed_gai_family = ragf
-        if interface and inips:
-            urllib3_cn.create_connection = rcc
+
+        urllib3.allowed_gai_family = default_gai
+        urllib3.create_connection = default_connection
+
         return res

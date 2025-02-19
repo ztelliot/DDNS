@@ -1,29 +1,20 @@
-from methods.basetype import MethodBaseType
+from methods.base import Method
 from methods.command import Command
-from methods.api import API
-import json
-import IPy
-import jsonpath
+from methods.api import get_api
 
 
-class Curl(MethodBaseType):
+class Curl(Method):
     @staticmethod
-    def getip(version: int = 4, interface: str = "", **kwargs) -> list:
-        command = f"curl -{version} -m 10 " + (f"--interface {interface} " if interface else '')
-        if kwargs.get("url"):
-            apis = kwargs['url'] if isinstance(kwargs['url'], list) else [kwargs['url']]
-        else:
-            apis = API
-        for api in apis:
-            addr = api["url"] if isinstance(api, dict) else api
-            out = Command.run(command=command + addr, ssh=kwargs.get("ssh"))
-            try:
-                ip = out
-                if isinstance(api, dict) and "key" in api:
-                    ip = jsonpath.findall(api["key"], json.loads(out))
-                    ip = ip[0] if ip else ''
-                if ip and IPy.IP(ip).version() == version:
-                    return [ip]
-            except:
-                continue
-        return []
+    def run(version: int = None, interface: str = None, url: list[str | dict[str, str]] | str = None,
+            **kwargs) -> dict[str, dict[str, str]]:
+        command = "curl -m 10 "
+        if version:
+            command += f"-{version} "
+        if interface:
+            command += f"--interface {interface} "
+        for api in get_api(url):
+            out = Command.exec(command=command + api.url, **kwargs)
+            ip = api.parse(out)
+            if ip:
+                return {ip: {"interface": interface} if interface else {}}
+        return {}

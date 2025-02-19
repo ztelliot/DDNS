@@ -1,22 +1,17 @@
-from methods.basetype import MethodBaseType
+from methods.base import Method
 import psutil
-import IPy
 
 
-class Interface(MethodBaseType):
+class Interface(Method):
     @staticmethod
-    def getip(version: int = 4, interface: str = "", **kwargs) -> list:
-        name = 'AF_INET' if version == 4 else 'AF_INET6'
-        ips = []
+    def run(version: int = None, interface: str = None, **kwargs) -> dict[str, dict[str, str]]:
+        name = ('AF_INET' if version == 4 else 'AF_INET6') if version else None
+        ips = {}
         addr = psutil.net_if_addrs()
         for adapter in addr:
             if not interface or adapter == interface:
                 for i in addr[adapter]:
-                    if i.family.name == name:
-                        address = i.address
-                        try:
-                            if address and IPy.IP(address).version() == version:
-                                ips.append(address)
-                        except:
-                            continue
+                    if (not name and i.family.name.startswith("AF_INET")) or i.family.name == name:
+                        if i.address:
+                            ips[i.address] = {"interface": adapter}
         return ips
