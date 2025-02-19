@@ -1,7 +1,8 @@
-from methods.base import Method
 import delegator
 import paramiko
 import logging
+from methods.base import Method
+from type import IPInfo
 
 
 class Command(Method):
@@ -28,6 +29,6 @@ class Command(Method):
         return out
 
     @staticmethod
-    def run(command: str, ssh: dict = None) -> dict[str, dict[str, str]]:
+    def run(command: str, ssh: dict = None) -> dict[str, IPInfo]:
         ip = Command.exec(command, ssh)
-        return {ip: {}} if ip else {}
+        return {ip: None} if ip else {}

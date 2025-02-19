@@ -1,8 +1,11 @@
+from type import IPInfo
+
+
 class Method:
     @staticmethod
-    def run(**kwargs) -> dict[str, dict[str, str]]:
+    def run(**kwargs) -> dict[str, IPInfo]:
         return {}
 
     @classmethod
-    def getip(cls, **kwargs) -> dict[str, dict[str, str]]:
+    def getip(cls, **kwargs) -> dict[str, IPInfo]:
         return cls.run(**kwargs)

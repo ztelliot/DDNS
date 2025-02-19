@@ -1,15 +1,16 @@
-from methods.base import Method
-from methods.interface import Interface
-from methods.api import get_api
 import requests
 import socket
 import urllib3.util.connection as urllib3
 import logging
+from methods.base import Method
+from methods.interface import Interface
+from methods.api import get_api
+from type import IPInfo, CustomAPI
 
 
 class Requests(Method):
     @staticmethod
-    def run(version: int = None, interface: str = None, url: list[str | dict[str, str]] | str = None, **kwargs) -> dict[str, dict[str, str]]:
+    def run(version: int = None, interface: str = None, url: CustomAPI = None) -> dict[str, IPInfo]:
         default_gai = urllib3.allowed_gai_family
         if version:
             urllib3.allowed_gai_family = (lambda : socket.AF_INET) if version == 4 else (lambda : socket.AF_INET6)
@@ -30,7 +31,7 @@ class Requests(Method):
                 ret = requests.get(api.url, timeout=5)
                 ip = api.parse(ret.text)
                 if ip:
-                    res[ip] = {"interface": interface} if interface else {}
+                    res[ip] = IPInfo(interface=interface) if interface else None
                     break
             except Exception as e:
                 logging.error(f"Failed to get ip from {api.url}: {e}")

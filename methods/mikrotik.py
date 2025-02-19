@@ -1,17 +1,18 @@
-from methods.base import Method
-from methods.command import Command
 import urllib3
 import requests
 from requests.auth import HTTPBasicAuth
 from librouteros import connect
 from librouteros.query import Key
+from methods.base import Method
+from methods.command import Command
+from type import IPInfo
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class RouterOSSSH(Method):
     @staticmethod
-    def run(version: int = None, interface: str = None, **kwargs) -> dict[str, dict[str, str]]:
+    def run(version: int = None, interface: str = None, **kwargs) -> dict[str, IPInfo]:
         if not kwargs:
             return {}
         command = "/ip " if version == 4 else "/ipv6 "
@@ -32,14 +33,14 @@ class RouterOSSSH(Method):
         if _address and _interface and len(_address) == len(_interface):
             for _a, _i in zip(_address, _interface):
                 if _a:
-                    ips[_a] = {"interface": _i} if _i else {}
+                    ips[_a] = IPInfo(interface=_i) if _i else None
         return ips
 
 
 class RouterOSAPI(Method):
     @staticmethod
     def run(hostname: str, username: str, password: str, port: int = 8728, version: int = None,
-            interface: str = None) -> dict[str, dict[str, str]]:
+            interface: str = None) -> dict[str, IPInfo]:
         path = "/ip/address" if version == 4 else "/ipv6/address"
         api = connect(username=username, password=password, host=hostname, port=port)
         ki = Key('interface')
@@ -51,14 +52,14 @@ class RouterOSAPI(Method):
         for i in query:
             _ip = i['address'].split('/')[0]
             if _ip:
-                ips[_ip] = {"interface": i['interface']} if i['interface'] else {}
+                ips[_ip] = IPInfo(interface=i['interface']) if i['interface'] else None
         return ips
 
 
 class RouterOSREST(Method):
     @staticmethod
     def run(hostname: str, username: str, password: str, port: int = 443, version: int = None,
-            interface: str = None) -> dict[str, dict[str, str]]:
+            interface: str = None) -> dict[str, IPInfo]:
         api = f"https://{hostname}:{port}/rest/ip{'' if version == 4 else 'v6'}/address"
         auth = HTTPBasicAuth(username, password)
         params = {}
@@ -69,5 +70,5 @@ class RouterOSREST(Method):
         for raw in data:
             _ip = raw['address'].split("/")[0]
             if _ip:
-                ips[_ip] = {"interface": raw['interface']} if raw['interface'] else {}
+                ips[_ip] = IPInfo(interface=raw['interface']) if raw['interface'] else None
         return ips

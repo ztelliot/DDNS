@@ -1,6 +1,7 @@
 import jsonpath
 import json
 from typing import Iterable
+from type import CustomAPI
 
 _api = [
     {
@@ -46,7 +47,7 @@ class API:
         return data
 
 
-def get_api(custom: list[str | dict[str, str]] | str = None) -> Iterable[API]:
+def get_api(custom: CustomAPI = None) -> Iterable[API]:
     api_list = (custom if isinstance(custom, list) else [custom]) if custom else _api
     for api in api_list:
         if isinstance(api, dict):

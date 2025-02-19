@@ -4,19 +4,21 @@ from requests.adapters import HTTPAdapter
 
 
 class Gandi:
-    def __init__(self, config: dict):
-        self.headers = {'X-Api-Key': config['token'], 'Content-Type': 'application/json'}
+    def __init__(self, token: str):
+        self.headers = {'X-Api-Key': token, 'Content-Type': 'application/json'}
         self.requests = requests.Session()
         self.requests.mount('http://', HTTPAdapter(max_retries=3))
         self.requests.mount('https://', HTTPAdapter(max_retries=3))
 
-    def __req__(self, domain: str, record: str, type: str = None, data: dict = None, method: str = "GET") -> tuple:
+    def __req__(self, domain: str, record: str, type: str = None, method: str = "GET",
+                **kwargs) -> tuple[bool, dict | None]:
         url = f'https://dns.api.gandi.net/api/v5/domains/{domain}/records/{record}' + ('/' + type if type else '')
         try:
-            ret = self.requests.request(method=method, url=url, json=data, headers=self.headers, timeout=3)
+            ret = self.requests.request(method=method, url=url, json=kwargs, headers=self.headers, timeout=3)
             ret.raise_for_status()
             return True, ret.json()
-        except:
+        except Exception as e:
+            logging.error(f"Request error: {e}")
             pass
         finally:
             return False, None
@@ -36,20 +38,20 @@ class Gandi:
         if '默认' in ip_list:
             for type in ip_list['默认']:
                 records = self.filter(sub_info, type)
-                logging.debug(f"根据 {type} 筛选出下列记录: {records}")
+                logging.debug(f"{type} filter records: {records}")
                 ttl = ip_list['默认'][type]['ttl']
                 ips = ip_list['默认'][type]['ip']
                 if records:
                     if sorted(records) == sorted(ips):
-                        logging.warning(f'{sub}.{domain} {type} 无需更新')
+                        logging.info(f'{sub}.{domain} {type} no need to update')
                         continue
                     elif ips:
-                        status, result = self.__req__(domain, sub, type, {"rrset_ttl": ttl, "rrset_values": ips}, 'PUT')
+                        status, result = self.__req__(domain, sub, type, 'PUT', rrset_ttl=ttl, rrset_values=ips)
                     else:
-                        status, result = self.__req__(domain, sub, type, method='DELETE')
+                        status, result = self.__req__(domain, sub, type, 'DELETE')
                 else:
-                    status, result = self.__req__(domain, sub, type, {"rrset_ttl": ttl, "rrset_values": ips}, 'POST')
+                    status, result = self.__req__(domain, sub, type, 'POST', rrset_ttl=ttl, rrset_values=ips)
                 if status:
-                    logging.warning(f"处理 {sub}.{domain} {type} 成功")
+                    logging.info(f"update {sub}.{domain} {type} success")
                 else:
-                    logging.warning(f"处理 {sub}.{domain} {type} 失败，{result}")
+                    logging.error(f"update {sub}.{domain} {type} failed, {result}")
