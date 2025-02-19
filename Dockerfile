@@ -1,4 +1,4 @@
-FROM python:latest
+FROM python:slim
 
 WORKDIR /usr/src/app
 
@@ -11,4 +11,4 @@ RUN apt-get update && \
 
 COPY . .
 
-CMD [ "python", "./main.py", "--config", "/config.yaml" ]
+CMD [ "python", "main.py", "--config", "/config.yaml" ]
