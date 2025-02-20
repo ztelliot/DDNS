@@ -64,12 +64,16 @@ class RecordAddress(AddressBase):
     address: Optional[str] = None
 
     @property
+    def real_method(self):
+        return (self.method if self.method else "requests") if not self.address else None
+
+    @property
     def suffix(self):
-        return f"{self.method}_{self.interface}_{self.offset}_{self.regex}_{self.value}"
+        return f"{self.real_method}_{self.interface}_{self.offset}_{self.regex}_{self.value}"
 
     def to_address(self, prefix: Optional[str] = None, version: Optional[int] = None) -> Address:
         return Address(name=f"{prefix}_{self.suffix}" if not self.address else self.address, version=version,
-                       method=self.method, interface=self.interface, regex=self.regex, offset=self.offset,
+                       method=self.real_method, interface=self.interface, regex=self.regex, offset=self.offset,
                        value=self.value, backup=self.backup)
 
 
@@ -94,7 +98,7 @@ class Record:
             for a in self.addresses:
                 if a.address:
                     reuse_addresses.append(a.address)
-                else:
+                elif not a.value:
                     new_addresses.append(a.to_address(_address_prefix, _version))
         else:
             new_addresses.append(Address(name=_address_prefix, version=_version))

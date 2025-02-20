@@ -69,15 +69,21 @@ def main(config: str = "config.yaml"):
     _addresses_result = {}
     for _a in _addresses:
         _address = _addresses[_a]
-        if _address.method not in _methods:
+        if _address.method not in _methods and _address.method not in methods:
             raise ValueError(f"method {_address.method} not found")
-        _method = _methods[_address.method]
+        if _address.method in _methods:
+            _method = _methods[_address.method]
+            _method_real = _method.real_method
+            _method_config = _method.config
+        else:
+            _method_real = _address.method
+            _method_config = {}
         try:
-            _arr = methods[_method.real_method].getip(version=_address.version, interface=_address.interface,
-                                                      **_method.config)
+            _arr = methods[_method_real].getip(version=_address.version, interface=_address.interface,
+                                               **_method_config)
             _addresses_result[_a] = address_filter(_arr, _address)
         except Exception as e:
-            logging.error(f"{_method.real_method} getip failed: {e}")
+            logging.error(f"{_method_real} getip failed: {e}")
             continue
     logging.info("%d addresses fetched", len(_addresses_result))
 

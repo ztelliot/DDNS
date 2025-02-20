@@ -221,7 +221,7 @@ domains:
             clean: True  # 可选，覆盖子域名全局设置
             addresses: # 可选，具体地址集合
               - address:  # 可选，地址名称，留空则不使用预先定义的地址，此后的筛选条件同样适用
-                method: core-router  # 可选，获取 IP 的方法，address 留空才有效
+                method: core-router  # 可选，获取 IP 的方法，address 留空才有效，本项留空时使用 requests 获取
                 interface: pppoe  # 可选，获取 IP 的网卡，二次筛选
                 regex: "^2409|^2408"  # 可选，用以筛选 IP 的正则表达式，二次筛选
                 offset: 114514  # 可选，用于计算实际设置的 IP，在 netmap 场景下有奇效，可以为一个 IP 地址或整数，二次计算
