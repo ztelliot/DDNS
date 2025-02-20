@@ -102,7 +102,7 @@ class DNSPod:
                 ips = deepcopy(ip_list[line][type]['ip'])
                 for ip in ip_list[line][type]['ip']:
                     if ip in records:
-                        logging.warning(f"{ip} exists in records")
+                        logging.debug(f"{ip} exists in records")
                         del records[ip]
                         ips.remove(ip)
                         records_list.remove(ip)
@@ -112,16 +112,16 @@ class DNSPod:
                     new = deepcopy(ips[0: len(ips) - len(records_list)])
                     for ip in new:
                         if self.record_create(domain, ip, sub_domain=sub, record_type=type, record_line=line, ttl=ttl):
-                            logging.info(f"create {ip} success")
+                            logging.debug(f"create {ip} success")
                         else:
                             logging.error(f"create {ip} failed")
                         ips.remove(ip)
                 elif len(records_list) > len(ips):
-                    logging.warning("records more than ips, remove extra records...")
+                    logging.debug("records more than ips, remove extra records...")
                     old = deepcopy(records[0: len(records_list) - len(ips)])
                     for ip in old:
                         if self.record_remove(domain, records[ip]):
-                            logging.info(f"remove {ip} success")
+                            logging.debug(f"remove {ip} success")
                         else:
                             logging.error(f"remove {ip} failed")
                         del records[ip]
@@ -129,10 +129,10 @@ class DNSPod:
                 for ip, old_ip in zip(ips, records_list):
                     if self.record_modify(domain, records[old_ip], ip, sub_domain=sub, record_type=type,
                                           record_line=line, ttl=ttl):
-                        logging.info(f"modify {old_ip} to {ip} success")
+                        logging.debug(f"modify {old_ip} to {ip} success")
                     else:
                         logging.error(f"modify {old_ip} failed, try to use DDNS...")
                         if self.record_ddns(domain, records[old_ip], value=ip, sub_domain=sub, record_line=line):
-                            logging.info(f"DDNS {old_ip} to {ip} success")
+                            logging.debug(f"DDNS {old_ip} to {ip} success")
                         else:
                             logging.error(f"DDNS {old_ip} failed")

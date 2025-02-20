@@ -1,15 +1,16 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: ddns-config
+  name: ddns
 data:
   config.yaml: |-
     providers: []
     methods: []
+    addresses: []
     domains: []
 ---
 kind: CronJob
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 metadata:
   name: ddns
 spec:
@@ -19,20 +20,19 @@ spec:
       template:
         spec:
           volumes:
-            - name: ddns-config
+            - name: ddns
               configMap:
-                name: ddns-config
+                name: ddns
           containers:
             - name: ddns
               image: ghcr.io/ztelliot/ddns:latest
               volumeMounts:
-                - name: ddns-config
+                - name: ddns
                   mountPath: /config.yaml
                   subPath: config.yaml
               terminationMessagePath: /dev/termination-log
               terminationMessagePolicy: File
               imagePullPolicy: Always
-          hostNetwork: true
           restartPolicy: OnFailure
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3

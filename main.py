@@ -46,7 +46,7 @@ def main(config: str = "config.yaml"):
     _providers = {i.name: i for i in config.providers}
     _methods = {i.name: i for i in config.methods} if config.methods else {}
 
-    logging.info("extract addresses")
+    logging.debug("extract addresses")
     _addresses = {i.name: i for i in config.addresses if i.name} if config.addresses else {}
     _addresses_usage = {i.name: False for i in config.addresses if i.name} if config.addresses else {}
     for d in config.domains:
@@ -65,7 +65,7 @@ def main(config: str = "config.yaml"):
             del _addresses[_a]
     logging.info("%d addresses extracted", len(_addresses))
 
-    logging.info("fetch addresses")
+    logging.debug("fetch addresses")
     _addresses_result = {}
     for _a in _addresses:
         _address = _addresses[_a]
@@ -79,9 +79,9 @@ def main(config: str = "config.yaml"):
         except Exception as e:
             logging.error(f"{_method.real_method} getip failed: {e}")
             continue
-    logging.info("addresses fetched")
+    logging.info("%d addresses fetched", len(_addresses_result))
 
-    logging.info("update dns")
+    logging.debug("update dns")
     for d in config.domains:
         _provider = _providers[d.provider]
         _provider_obj = providers[_provider.real_provider](**_provider.config)
@@ -135,7 +135,7 @@ def main(config: str = "config.yaml"):
                     if "AAAA" not in ip_list[line]:
                         ip_list[line]["AAAA"] = {'ttl': ttl, 'ip': []}
                     ip_list[line]["AAAA"]['ip'].extend([i for i in _record_addresses if ':' in i])
-                logging.info(f"target record: {ip_list}")
+            logging.info(f"target record: {ip_list}")
             _provider_obj.update(d.domain, s.name, ip_list)
             logging.info(f"{s.name}.{d.domain} updated")
     logging.info("done")
