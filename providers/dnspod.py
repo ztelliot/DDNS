@@ -118,7 +118,7 @@ class DNSPod:
                         ips.remove(ip)
                 elif len(records_list) > len(ips):
                     logging.debug("records more than ips, remove extra records...")
-                    old = deepcopy(records[0: len(records_list) - len(ips)])
+                    old = deepcopy(records_list[0: len(records_list) - len(ips)])
                     for ip in old:
                         if self.record_remove(domain, records[ip]):
                             logging.debug(f"remove {ip} success")
